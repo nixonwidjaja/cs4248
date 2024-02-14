@@ -11,11 +11,11 @@
 import re
 
 # TODO: Place your answers between the quotes below.
-R1 = r"([\S]).*\1"
-R2 = r"(?!.*([\S])([\S])\2\1)^.*$"
-R3 = r"(?!.*([\S])([\S])\2\1)^([\S]).*\3$"
-R4 = r"(?=.*([\S])([\S])\2\1)^([\S]).*\3$"
-R5 = r":\)|:\(|:-\)|;\)|\);|\):|:D|\(8|<3|;-\)|:/|=\)|:-\(|8:|8\)|\(:|:P|;D|:o\)|=\(|:p|:-/|:-D|;\(|=D"  # bonus
+R1 = r"(\S).*\1"
+R2 = r"(?!.*(\S)(\S)\2\1)^.*$"
+R3 = r"(?!.*(\S)(\S)\2\1)^(\S).*\3$"
+R4 = r"(?=.*(\S)(\S)\2\1)^(\S).*\3$"
+R5 = r":\)|:\(|:-\)|;\)|\);|\):|:D|\(8|<3|;-\)|:\/|=\)|:-\(|8:|8\)|\(:|:P|;D|:o\)|=\(|:p|:-\/|:-D|;\(|=D|[:;=8][-]?[\(\)\/DPp]"  # bonus
 run_bonus = True  # set to True if you want to test bonus question
 
 # Minitests: {match_string: expected_outcome}

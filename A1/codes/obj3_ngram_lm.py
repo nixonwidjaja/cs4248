@@ -18,8 +18,9 @@
 ##  recommended resources and libraries.                                 ##
 ###########################################################################
 
-# import random, math
-import collections
+import random, math
+import time
+from nltk.tokenize import word_tokenize, sent_tokenize
 
 
 class NgramLM(object):
@@ -49,78 +50,68 @@ class NgramLM(object):
         self.k = k
 
         # Fields below are optional but recommended; you may replace as you like
-        self.ngram_dict = collections.defaultdict()
+        self.LM = {}
         self.special_tokens = {'bos': '~', 'eos': '<EOS>'}
+        text = self.read_file(path)
+        tokens = self.tokenize(text)
+        if self.n == 1:
+            self.generate_unigram_LM(tokens)
+            self.words = list(self.LM.keys())
+            self.weights = list(self.LM.values())
+        else:
+            self.generate_bigram_LM(tokens)
+            self.words = {}
+            self.weights = {}
+            for a in self.LM:
+                self.words[a] = list(self.LM[a].keys())
+                self.weights[a] = list(self.LM[a].values())
 
     def read_file(self, path: str):
-        ''' Reads text from file path and initiate n-gram corpus.
-
-        PS: Change the function signature as you like. 
-            This method is a suggested method to implement,
-            which you may call in the method of __init__ 
-        '''
         # TODO Write your code here
-        pass
+        with open(path, 'r') as f:
+            text = f.read()
+        return text.lower()
 
-    def init_corpus(self, text: str):
-        ''' Initiates n-gram corpus based on loaded text
-        
-        PS: Change the function signature as you like. 
-            This method is only a suggested method,
-            which you may call in the method of read_file 
-        '''
+    def tokenize(self, text: str):
         # TODO Write your code here
-        pass
+        sentences = sent_tokenize(text)
+        tokens = []
+        for sen in sentences:
+            tokens.append(self.special_tokens['bos'])
+            tokens.extend(word_tokenize(sen))
+            tokens.append(self.special_tokens['eos'])
+        return tokens
 
-    def get_vocab_from_tokens(self, tokens):
-        ''' Returns the vocabulary (e.g. {word: count}) from a list of tokens
-
-        Hint: to get the vocabulary, you need to first tokenize the corpus.
-
-        PS: Change the function signature as you like. 
-            This method is a suggested method to implement,
-            which you may call in the method of init_corpus.
-        '''
+    def generate_unigram_LM(self, tokens):
         # TODO Write your code here
-        pass
+        for t in tokens:
+            if t not in self.LM:
+                self.LM[t] = self.k
+            self.LM[t] += 1
+        self.total = 0
+        for i in self.LM:
+            self.total += self.LM[i]
+            
+    def generate_smoothing_all_words(self, token_set: set):
+        d = {}
+        for t in token_set:
+            d[t] = self.k
+        return d
 
-    def get_ngrams_from_seqs(self, sentences):
-        ''' Returns ngrams of the text as list of pairs - [(sequence context, word)] 
-            where sequence context is the ngram and word is its last word
-
-        Hint: to get the ngrams, you may need to first get split sentences from corpus,
-            and add paddings to them.
-
-        PS: Change the function signature as you like. 
-            This method is a suggested method to implement,
-            which you may call in the method of init_corpus 
-        '''
+    def generate_bigram_LM(self, tokens):
         # TODO Write your code here
-        pass
-
-    def add_padding_to_seq(self, sentence: str):
-        '''  Adds paddings to a sentence.
-        The goal of the method is to pad start token(s) to input sentence,
-        so that we can get token '~ I' from a sentence 'I like NUS.' as in the bigram case.
-
-        PS: Change the function signature as you like. 
-            This method is a suggested method to implement,
-            which you may call in the method of get_ngrams_from_seqs 
-        '''
-        # TODO Write your code here
-        # Use '~' as your padding symbol
-        pass
-
-    def get_next_word_probability(self, text: str, word: str):
-        ''' Returns probability of a word occurring after specified text, 
-        based on learned ngrams.
-
-        PS: Change the function signature as you like. 
-            This method is a suggested method to implement,
-            which you may call in the method of generate_word         
-        '''
-        # TODO Write your code here
-        pass
+        token_set = set(tokens)
+        for i in range(len(tokens) - 1):
+            a = tokens[i]
+            b = tokens[i + 1]
+            if a not in self.LM:
+                self.LM[a] = self.generate_smoothing_all_words(token_set)
+            self.LM[a][b] += 1
+        self.total = {}
+        for a in self.LM:
+            self.total[a] = 0
+            for b in self.LM[a]:
+                self.total[a] += self.LM[a][b]
 
     def generate_word(self, text: str):
         '''
@@ -135,7 +126,14 @@ class NgramLM(object):
         [Out] string (a word)
         '''
         # TODO Write your code here
-        pass
+        text = text.lower()
+        if self.n == 1:
+            randomList = random.choices(self.words, weights=self.weights)
+        else:
+            tokens = [self.special_tokens['bos']] + word_tokenize(text)
+            prev = tokens[-1]
+            randomList = random.choices(self.words[prev], weights=self.weights[prev])
+        return randomList[0]
 
     def generate_text(self, length: int):
         ''' Generate text of a specified length based on the learned ngram model 
@@ -147,7 +145,12 @@ class NgramLM(object):
             The length here is a reasonable int number, (e.g., 3~20)
         '''
         # TODO Write your code here
-        pass
+        text = []
+        sentence = ''
+        for _ in range(length):
+            text.append(self.generate_word(sentence))
+            sentence = ' '.join(text)
+        return sentence
 
     def get_perplexity(self, text: str):
         '''
@@ -165,12 +168,31 @@ class NgramLM(object):
               Also handle the case when the LM assigns zero probabilities.
         '''
         # TODO Write your code here
-        pass
+        text = text.lower()
+        pp = 0
+        sentences = sent_tokenize(text)
+        N = 0
+        for sen in sentences:
+            tokens = [self.special_tokens['bos']] + word_tokenize(sen) + [self.special_tokens['eos']]
+            N += len(tokens)
+            if self.n == 1:
+                for t in tokens:
+                    if t in self.LM:
+                        pp -= math.log(self.LM[t] / self.total)
+            else:
+                for i in range(len(tokens) - 1):
+                    a = tokens[i]
+                    b = tokens[i + 1]
+                    if a and b:
+                        pp -= math.log(self.LM[a][b] / self.total[a])
+        pp /= N
+        return math.exp(pp)
 
 
 if __name__ == '__main__':
     print('''[Alert] Time your code and make sure it finishes within 1 minute!''')
 
+    start = time.time()
     LM = NgramLM('../data/Pride_and_Prejudice.txt', n=2, k=1.0)
 
     test_cases = ["The rabbit hopped onto a beautiful walk by the garden.", 
@@ -185,3 +207,5 @@ if __name__ == '__main__':
     _len = 7
     text = LM.generate_text(length=_len)
     print(f'\npredicted text of length {_len}: {text}')
+    end = time.time()
+    print(f"{end - start} seconds")

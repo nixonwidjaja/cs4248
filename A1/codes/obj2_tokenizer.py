@@ -65,6 +65,8 @@ class Tokenizer:
             which you can utilize in tokenize_sentence
         '''
         # TODO Modify the code here
+        if self.lowercase:
+            self.txt = self.txt.lower()
         pass
     
     def tokenize_sentence(self, sentence):
