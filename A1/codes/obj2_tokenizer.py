@@ -27,7 +27,8 @@
 #     ax.grid()
 #     fig.savefig(f"../plots/{imgname}")
 #     plt.show()
-
+from nltk.tokenize import word_tokenize
+import re
 
 class Tokenizer:
 
@@ -65,11 +66,43 @@ class Tokenizer:
             which you can utilize in tokenize_sentence
         '''
         # TODO Modify the code here
+        nltk = set(word_tokenize(self.text.lower()))
+        mine = set(self.tokenize_sentence(self.text))
+        print(nltk.difference(mine))
+
+    def basic_tokenize(self, sentence: str):
         if self.lowercase:
-            self.txt = self.txt.lower()
+            sentence = sentence.lower()
+        splits = sentence.split()
+        tokens = []
+        for s in splits:
+            if s in ['mr.', 'ms.', 'mrs.', 'u.s.', 'ph.d.']:
+                tokens.append(s)
+                continue
+            if s[0] == '$':
+                tokens.append(s)
+                continue
+            if re.search('\W', s[0]): # punc start
+                tokens.append(s[0])
+                s = s[1:]
+            if len(s) == 0:
+                continue
+            if s[-2:] in ["'s", '?"', '!"', '!”', '?”', ',”', '’s']:
+                tokens.append(s[:-2])
+                tokens.append(s[-2:])
+                continue
+            if re.search('\W', s[-1]): # punc end
+                tokens.append(s[:-1])
+                tokens.append(s[-1])
+                continue
+            else:
+                tokens.append(s)
+        return tokens
+    
+    def bpe_tokenize(self, sentence: str):
         pass
     
-    def tokenize_sentence(self, sentence):
+    def tokenize_sentence(self, sentence: str):
         '''
         To verify your implementation, we will test this method by 
         input a sentence specified by us.  
@@ -85,7 +118,7 @@ class Tokenizer:
         PS: This method is mandatory to implement with the method signature as-is. 
         '''
         # TODO Modify the code here
-        pass
+        return self.basic_tokenize(sentence)
     
     def plot_word_frequency(self):
         '''
@@ -121,7 +154,8 @@ if __name__ == '__main__':
     
     # you can edit the test_cases here to add your own test cases
     test_cases = ["""The Foundation's business office is located at 809 North 1500 West, 
-        Salt Lake City, UT 84116, (801) 596-1887."""]
+        Salt Lake City, UT 84116, (801) 596-1887.""", 
+        'I give 1/2 of the apple to my ten-year-old sister.']
     
     for case in test_cases:
         rst1 = basic_tokenizer.tokenize_sentence(case)
