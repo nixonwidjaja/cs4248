@@ -99,8 +99,54 @@ class Tokenizer:
                 tokens.append(s)
         return tokens
     
-    def bpe_tokenize(self, sentence: str):
-        pass
+    def init_corpus(self, words):
+        space_words = [' '.join(list(w)) for w in words]
+        corpus = {}
+        for w in space_words:
+            if w not in corpus:
+                corpus[w] = 0
+            corpus[w] += 1
+        return corpus
+    
+    def count_pairs(self, corpus):
+        count = {}
+        for s in corpus:
+            chars = s.split()
+            for i in range(len(chars) - 1):
+                pair = chars[i] + chars[i+1]
+                if pair not in count:
+                    count[pair] = 0
+                count[pair] += 1
+        return list(count.items())
+    
+    def merge_pair(self, corpus, add_pair):
+        new_corpus = {}
+        for s in corpus:
+            chars = s.split()
+            new_s = ''
+            i = 0
+            while i < len(chars):
+                if i == len(chars) - 1:
+                    new_s += chars[i]
+                    break
+                pair = chars[i] + chars[i+1]
+                if pair == add_pair:
+                    new_s += pair + ' '
+                    i += 1
+                else:
+                    new_s += chars[i] + ' '
+                i += 1
+            new_corpus[new_s] = corpus[s]
+        return new_corpus
+    
+    def bpe_token_learner(self, sentence: str):
+        if self.lowercase:
+            sentence = sentence.lower()
+        words = [i + '_' for i in sentence.split()]
+        corpus = self.init_corpus(words)
+        pairs = self.count_pairs(corpus)
+        pair = max(pairs, key=lambda x: x[1])[0]
+        corpus = self.merge_pair(corpus, pair)
     
     def tokenize_sentence(self, sentence: str):
         '''
