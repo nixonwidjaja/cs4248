@@ -50,21 +50,19 @@ class NgramLM(object):
         self.k = k
 
         # Fields below are optional but recommended; you may replace as you like
-        self.LM = {}
+        self.LM = {} # store count
         self.special_tokens = {'bos': '~', 'eos': '<EOS>'}
         text = self.read_file(path)
         tokens = self.tokenize(text)
+        self.V = len(set(tokens))
         if self.n == 1:
             self.generate_unigram_LM(tokens)
             self.words = list(self.LM.keys())
-            self.weights = list(self.LM.values())
         else:
             self.generate_bigram_LM(tokens)
             self.words = {}
-            self.weights = {}
             for a in self.LM:
                 self.words[a] = list(self.LM[a].keys())
-                self.weights[a] = list(self.LM[a].values())
 
     def read_file(self, path: str):
         # TODO Write your code here
@@ -86,16 +84,16 @@ class NgramLM(object):
         # TODO Write your code here
         for t in tokens:
             if t not in self.LM:
-                self.LM[t] = self.k
+                self.LM[t] = 0
             self.LM[t] += 1
-        self.total = 0
+        self.count_vocab = 0
         for i in self.LM:
-            self.total += self.LM[i]
+            self.count_vocab += self.LM[i]
             
-    def generate_smoothing_all_words(self, token_set: set):
+    def init_count(self, token_set: set):
         d = {}
         for t in token_set:
-            d[t] = self.k
+            d[t] = 0
         return d
 
     def generate_bigram_LM(self, tokens):
@@ -105,13 +103,21 @@ class NgramLM(object):
             a = tokens[i]
             b = tokens[i + 1]
             if a not in self.LM:
-                self.LM[a] = self.generate_smoothing_all_words(token_set)
+                self.LM[a] = self.init_count(token_set)
             self.LM[a][b] += 1
-        self.total = {}
+        self.count_vocab = {}
         for a in self.LM:
-            self.total[a] = 0
+            self.count_vocab[a] = 0
             for b in self.LM[a]:
-                self.total[a] += self.LM[a][b]
+                self.count_vocab[a] += self.LM[a][b]
+
+    def count_probability(self, a, b=None):
+        if self.n == 1:
+            return (self.LM.get(a, 0) + self.k) / (self.count_vocab + self.k * self.V)
+        else:
+            if a in self.LM:
+                return (self.LM[a].get(b, 0) + self.k) / (self.count_vocab[a] + self.k * self.V)
+            return (self.LM.get(a, 0) + self.k) / (self.count_vocab.get(a, 0) + self.k * self.V)
 
     def generate_word(self, text: str):
         '''
@@ -128,11 +134,14 @@ class NgramLM(object):
         # TODO Write your code here
         text = text.lower()
         if self.n == 1:
-            randomList = random.choices(self.words, weights=self.weights)
+            probs = [self.count_probability(w) for w in self.words]
+            randomList = random.choices(self.words, weights=probs)
         else:
             tokens = [self.special_tokens['bos']] + word_tokenize(text)
             prev = tokens[-1]
-            randomList = random.choices(self.words[prev], weights=self.weights[prev])
+            prev = prev if prev in self.words else self.special_tokens['bos']
+            probs = [self.count_probability(prev, w) for w in self.words[prev]]
+            randomList = random.choices(self.words[prev], weights=probs)
         return randomList[0]
 
     def generate_text(self, length: int):
@@ -177,14 +186,12 @@ class NgramLM(object):
             N += len(tokens)
             if self.n == 1:
                 for t in tokens:
-                    if t in self.LM:
-                        pp -= math.log(self.LM[t] / self.total)
+                    pp -= math.log(self.count_probability(t))
             else:
                 for i in range(len(tokens) - 1):
                     a = tokens[i]
                     b = tokens[i + 1]
-                    if a and b:
-                        pp -= math.log(self.LM[a][b] / self.total[a])
+                    pp -= math.log(self.count_probability(a, b))
         pp /= N
         return math.exp(pp)
 

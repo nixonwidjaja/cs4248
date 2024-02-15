@@ -11,22 +11,23 @@
 ##  recommended resources and libraries.                                 ##
 ###########################################################################
 
-# import matplotlib.pyplot as plt     # Requires matplotlib to create plots.
+import matplotlib.pyplot as plt     # Requires matplotlib to create plots.
 # import numpy as np    # Requires numpy to represent the numbers
 
-# def draw_plot(r, f, imgname):
-#     # Data for plotting
-#     x = np.asarray(r)
-#     y = np.asarray(f)
+def draw_plot(r, f, imgname=None):
+    # Data for plotting
+    x = r
+    y = f
 
-#     fig, ax = plt.subplots()
-#     ax.plot(x, y)
+    fig, ax = plt.subplots()
+    ax.plot(x, y)
 
-#     ax.set(xlabel='Rank (log)', ylabel='Frequency (log)',
-#         title='Word Frequency v.s. Rank (log)')
-#     ax.grid()
-#     fig.savefig(f"../plots/{imgname}")
-#     plt.show()
+    ax.set(xlabel='Rank (log)', ylabel='Frequency (log)',
+        title='Word Frequency v.s. Rank (log)')
+    ax.grid()
+    # fig.savefig(f"../plots/{imgname}")
+    plt.show()
+
 from nltk.tokenize import word_tokenize
 import re
 
