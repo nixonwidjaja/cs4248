@@ -38,6 +38,7 @@ class Tokenizer:
         
         self.bpe = bpe
         self.lowercase = lowercase
+        self.bpe_vocab = []
 
     def tokenize(self):
         ''' Returns/Saves a set of word tokens for the loaded textual file
@@ -66,9 +67,10 @@ class Tokenizer:
             which you can utilize in tokenize_sentence
         '''
         # TODO Modify the code here
-        nltk = set(word_tokenize(self.text.lower()))
-        mine = set(self.tokenize_sentence(self.text))
-        print(nltk.difference(mine))
+        if self.bpe:
+            return self.bpe_token_learner(self.text)
+        else:
+            return self.basic_tokenize(self.text)
 
     def basic_tokenize(self, sentence: str):
         if self.lowercase:
@@ -99,7 +101,8 @@ class Tokenizer:
                 tokens.append(s)
         return tokens
     
-    def init_corpus(self, words):
+    def init_corpus(self, sentence: str):
+        words = [i + '_' for i in sentence.split()]
         space_words = [' '.join(list(w)) for w in words]
         corpus = {}
         for w in space_words:
@@ -122,31 +125,57 @@ class Tokenizer:
     def merge_pair(self, corpus, add_pair):
         new_corpus = {}
         for s in corpus:
-            chars = s.split()
-            new_s = ''
-            i = 0
-            while i < len(chars):
-                if i == len(chars) - 1:
-                    new_s += chars[i]
-                    break
-                pair = chars[i] + chars[i+1]
-                if pair == add_pair:
-                    new_s += pair + ' '
-                    i += 1
-                else:
-                    new_s += chars[i] + ' '
-                i += 1
+            new_s = self.merge_string(s, add_pair)
             new_corpus[new_s] = corpus[s]
         return new_corpus
+    
+    def merge_string(self, s: str, add_pair):
+        chars = s.split()
+        new_s = ''
+        i = 0
+        while i < len(chars):
+            if i == len(chars) - 1:
+                new_s += chars[i]
+                break
+            pair = chars[i] + chars[i+1]
+            if pair == add_pair:
+                new_s += pair + ' '
+                i += 1
+            else:
+                new_s += chars[i] + ' '
+            i += 1
+        return new_s
     
     def bpe_token_learner(self, sentence: str):
         if self.lowercase:
             sentence = sentence.lower()
+        corpus = self.init_corpus(sentence)
+        for i in range(13000):
+            if len(self.bpe_vocab) == 13000:
+                break
+            pairs = self.count_pairs(corpus)
+            pair = max(pairs, key=lambda x: x[1])[0]
+            corpus = self.merge_pair(corpus, pair)
+            self.bpe_vocab.append(pair)
+        return self.bpe_vocab
+    
+    def bpe_tokenize(self, sentence: str):
+        if self.lowercase:
+            sentence = sentence.lower()
+        if len(self.bpe_vocab) == 0:
+            self.tokenize()
         words = [i + '_' for i in sentence.split()]
-        corpus = self.init_corpus(words)
-        pairs = self.count_pairs(corpus)
-        pair = max(pairs, key=lambda x: x[1])[0]
-        corpus = self.merge_pair(corpus, pair)
+        space_words = [' '.join(list(w)) for w in words]
+        for v in self.bpe_vocab:
+            word_list = []
+            for w in space_words:
+                word_list.append(self.merge_string(w, v))
+            space_words = word_list
+        tokens = []
+        for w in space_words:
+            tokens.extend(w.split())
+        return tokens
+        
     
     def tokenize_sentence(self, sentence: str):
         '''
@@ -164,7 +193,10 @@ class Tokenizer:
         PS: This method is mandatory to implement with the method signature as-is. 
         '''
         # TODO Modify the code here
-        return self.basic_tokenize(sentence)
+        if self.bpe:
+            return self.bpe_tokenize(sentence)
+        else:
+            return self.basic_tokenize(sentence)
     
     def plot_word_frequency(self):
         '''
