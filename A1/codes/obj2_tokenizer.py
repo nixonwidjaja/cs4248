@@ -28,7 +28,6 @@ def draw_plot(r, f, imgname=None):
     # fig.savefig(f"../plots/{imgname}")
     plt.show()
 
-from nltk.tokenize import word_tokenize
 import re
 
 class Tokenizer:
@@ -68,10 +67,11 @@ class Tokenizer:
             which you can utilize in tokenize_sentence
         '''
         # TODO Modify the code here
+        basic = self.basic_tokenize(self.text)
         if self.bpe:
             return self.bpe_token_learner(self.text)
         else:
-            return self.basic_tokenize(self.text)
+            return basic
 
     def basic_tokenize(self, sentence: str):
         if self.lowercase:
@@ -100,6 +100,7 @@ class Tokenizer:
                 continue
             else:
                 tokens.append(s)
+        self.count_distinct_basic_tokens = len(set(tokens))
         return tokens
     
     def init_corpus(self, sentence: str):
@@ -151,8 +152,10 @@ class Tokenizer:
         if self.lowercase:
             sentence = sentence.lower()
         corpus = self.init_corpus(sentence)
-        for i in range(13000):
-            if len(self.bpe_vocab) == 13000:
+        print(f"count distinct basic tokens = {self.count_distinct_basic_tokens}")
+        for i in range(self.count_distinct_basic_tokens):
+            print(f"bpe iteration: {i}")
+            if len(self.bpe_vocab) == self.count_distinct_basic_tokens:
                 break
             pairs = self.count_pairs(corpus)
             pair = max(pairs, key=lambda x: x[1])[0]
