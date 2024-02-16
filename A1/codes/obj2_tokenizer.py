@@ -14,18 +14,22 @@
 import matplotlib.pyplot as plt     # Requires matplotlib to create plots.
 # import numpy as np    # Requires numpy to represent the numbers
 
-def draw_plot(r, f, imgname=None):
+def draw_plot(rank, freq, imgname):
     # Data for plotting
-    x = r
-    y = f
+    x = rank
+    y = freq
 
     fig, ax = plt.subplots()
     ax.plot(x, y)
 
     ax.set(xlabel='Rank (log)', ylabel='Frequency (log)',
-        title='Word Frequency v.s. Rank (log)')
+        title=f"Word Frequency v.s. Rank (log) [{imgname}]")
+    ax.set_xscale('log')
+    ax.set_yscale('log')
     ax.grid()
-    # fig.savefig(f"../plots/{imgname}")
+    fig.savefig(f"../plots/{imgname}")
+    plt.xscale('log')
+    plt.yscale('log')
     plt.show()
 
 import re
@@ -146,17 +150,17 @@ class Tokenizer:
             else:
                 new_s += chars[i] + ' '
             i += 1
-        return new_s
+        return new_s.strip()
     
     def bpe_token_learner(self, sentence: str):
         if self.lowercase:
             sentence = sentence.lower()
         corpus = self.init_corpus(sentence)
+        self.bpe_vocab = list(set(list(sentence))) + ['_']
         print(f"count distinct basic tokens = {self.count_distinct_basic_tokens}")
-        for i in range(self.count_distinct_basic_tokens):
-            print(f"bpe iteration: {i}")
-            if len(self.bpe_vocab) == self.count_distinct_basic_tokens:
-                break
+        while len(self.bpe_vocab) < self.count_distinct_basic_tokens:
+            if len(self.bpe_vocab) % 100 == 0:
+                print(f"bpe vocab length: {len(self.bpe_vocab)} -> {self.count_distinct_basic_tokens}")
             pairs = self.count_pairs(corpus)
             pair = max(pairs, key=lambda x: x[1])[0]
             corpus = self.merge_pair(corpus, pair)
@@ -213,7 +217,23 @@ class Tokenizer:
         Rank r = Index of the word according to word occurence list
         '''
         # TODO Modify the code here
-        pass
+        if self.bpe:
+            tokens = self.bpe_vocab if len(self.bpe_vocab) > 0 else self.tokenize()
+            title = '2-B'
+        else:
+            tokens = self.tokenize()
+            title = '2-A'
+        count = {}
+        for t in tokens:
+            if t not in count:
+                count[t] = 0
+            count[t] += 1
+        frequencies = list(count.values())
+        total = sum(frequencies)
+        frequencies.sort(reverse=True)
+        r = list(range(1, len(frequencies) + 1))
+        f = [i / total for i in frequencies]
+        draw_plot(r, f, title)
 
     
 if __name__ == '__main__':
@@ -238,6 +258,9 @@ if __name__ == '__main__':
     test_cases = ["""The Foundation's business office is located at 809 North 1500 West, 
         Salt Lake City, UT 84116, (801) 596-1887.""", 
         'I give 1/2 of the apple to my ten-year-old sister.']
+    
+    basic_tokenizer.plot_word_frequency()
+    bpe_tokenizer.plot_word_frequency()
     
     for case in test_cases:
         rst1 = basic_tokenizer.tokenize_sentence(case)

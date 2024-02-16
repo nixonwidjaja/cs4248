@@ -215,4 +215,4 @@ if __name__ == '__main__':
     text = LM.generate_text(length=_len)
     print(f'\npredicted text of length {_len}: {text}')
     end = time.time()
-    print(f"{end - start} seconds")
+    print(f"Time elapsed: {end - start} seconds")
