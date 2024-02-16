@@ -24,14 +24,11 @@ def draw_plot(rank, freq, imgname):
 
     ax.set(xlabel='Rank (log)', ylabel='Frequency (log)',
         title=f"Word Frequency v.s. Rank (log) [{imgname}]")
-    ax.set_xscale('log')
-    ax.set_yscale('log')
     ax.grid()
     fig.savefig(f"../plots/{imgname}")
-    plt.xscale('log')
-    plt.yscale('log')
     plt.show()
 
+import math
 import re
 
 class Tokenizer:
@@ -165,7 +162,19 @@ class Tokenizer:
             pair = max(pairs, key=lambda x: x[1])[0]
             corpus = self.merge_pair(corpus, pair)
             self.bpe_vocab.append(pair)
-        return self.bpe_vocab
+        return self.bpe_tokenize_book(corpus)
+    
+    def bpe_tokenize_book(self, corpus):
+        text = self.text.lower() if self.lowercase else self.text
+        self.bpe_tokens = []
+        words = [i + '_' for i in text.split()]
+        mapping = {}
+        for c in corpus:
+            c_split = c.split()
+            mapping[''.join(c_split)] = c_split
+        for w in words:
+            self.bpe_tokens.extend(mapping[w])
+        return self.bpe_tokens
     
     def bpe_tokenize(self, sentence: str):
         if self.lowercase:
@@ -218,7 +227,7 @@ class Tokenizer:
         '''
         # TODO Modify the code here
         if self.bpe:
-            tokens = self.bpe_vocab if len(self.bpe_vocab) > 0 else self.tokenize()
+            tokens = self.bpe_tokens if len(self.bpe_tokens) > 0 else self.tokenize()
             title = '2-B'
         else:
             tokens = self.tokenize()
@@ -231,8 +240,8 @@ class Tokenizer:
         frequencies = list(count.values())
         total = sum(frequencies)
         frequencies.sort(reverse=True)
-        r = list(range(1, len(frequencies) + 1))
-        f = [i / total for i in frequencies]
+        r = [math.log(i) for i in range(1, len(frequencies) + 1)]
+        f = [math.log(i / total) for i in frequencies]
         draw_plot(r, f, title)
 
     
