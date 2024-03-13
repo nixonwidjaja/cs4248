@@ -18,10 +18,10 @@ from nltk.corpus import stopwords
 from sklearn.metrics import f1_score, make_scorer
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.naive_bayes import MultinomialNB, ComplementNB
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier, HistGradientBoostingClassifier
 
 # TODO: Replace with your Student Number
 _STUDENT_NUM = "A0236430N"
@@ -33,7 +33,7 @@ def build_model(model):
 
     if model == "NB":
         parameters = {
-            "alpha": [0.01, 0.1, 0.5, 1.0, 5.0, 10.0],
+            "alpha": [0.01, 0.1, 1.0],
             "fit_prior": [True, False],
         }
         return GridSearchCV(
@@ -53,7 +53,7 @@ def build_model(model):
         # return logreg
         return GridSearchCV(logreg, param_grid, cv=5, scoring=f1_macro, n_jobs=-1)
     elif model == "NN":
-        param_grid = {"hidden_layer_sizes": [(50, 50)]}
+        param_grid = {"hidden_layer_sizes": [(25,)]}
         classifier = MLPClassifier(
             max_iter=200,
             activation="relu",
@@ -62,21 +62,12 @@ def build_model(model):
             early_stopping=True,
         )
         return GridSearchCV(classifier, param_grid, cv=5, scoring=f1_macro, n_jobs=-1)
-    elif model == "CNB":
-        parameters = {
-            "alpha": [0.01, 0.1, 0.5, 1.0, 5.0, 10.0],
-            "fit_prior": [True, False],
-        }
-        return GridSearchCV(
-            ComplementNB(), parameters, cv=5, scoring=f1_macro, n_jobs=-1
-        )
     elif model == "GBC":
         parameters = {
-            "l2_regularization": [0.1, 1],
-            "learning_rate": [0.1, 0.01],
+            "learning_rate": [1, 0.1, 0.01],
         }
         return GridSearchCV(
-            HistGradientBoostingClassifier(max_iter=300, class_weight="balanced"),
+            GradientBoostingClassifier(),
             parameters,
             cv=5,
             scoring=f1_macro,
@@ -89,9 +80,9 @@ def preprocessing(text: str):
     wnl = WordNetLemmatizer()
 
     text = word_tokenize(text.lower())
-    cleaned = [w for w in text if w.isalpha()]
-    lemmatized = [wnl.lemmatize(w) for w in cleaned]
-    return " ".join(lemmatized)
+    # cleaned = [w for w in text if w.isalpha()]
+    # lemmatized = [wnl.lemmatize(w) for w in cleaned]
+    return " ".join(text)
 
 
 def train_model(model, X_train, y_train):
@@ -150,8 +141,9 @@ def glove(X_train):
     return X_train_glove
 
 
-def main(do_upsample=True, feature="glove", model="NN"):
+def main(do_upsample=True, feature="glove", model_name="NN"):
     """load train, val, and test data"""
+    print(do_upsample, feature, model_name)
     train = pd.read_csv("train.csv")
 
     # print((train["Verdict"] == 1).sum())  # 5413
@@ -173,11 +165,12 @@ def main(do_upsample=True, feature="glove", model="NN"):
     test = pd.read_csv("test.csv")
     X_test = test["Text"]
 
-    # model = build_model("NN")  # TODO: Define your model here
+    model = build_model(model_name)  # TODO: Define your model here
 
     if feature == "cv":
-        count_v = CountVectorizer(preprocessor=preprocessing, ngram_range=(1, 2))
+        count_v = CountVectorizer(preprocessor=preprocessing)
         X_train = count_v.fit_transform(X_train).toarray()
+        X_val = count_v.transform(X_val)
         X_test = count_v.transform(X_test)
     elif feature == "tfidf":
         tfidf = TfidfVectorizer(
@@ -187,9 +180,11 @@ def main(do_upsample=True, feature="glove", model="NN"):
             ngram_range=(1, 2),
         )
         X_train = tfidf.fit_transform(X_train)
+        X_val = tfidf.transform(X_val)
         X_test = tfidf.transform(X_test)
     elif feature == "glove":
         X_train = glove(X_train)
+        X_val = glove(X_val)
         X_test = glove(X_test)
 
     train_model(model, X_train, y_train)
@@ -214,4 +209,4 @@ def main(do_upsample=True, feature="glove", model="NN"):
 
 # Allow the main class to be invoked if run as a file.
 if __name__ == "__main__":
-    main(do_upsample=True, feature="glove", model="NN")
+    main(do_upsample=True, feature="tfidf", model_name="GBC")
