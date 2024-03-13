@@ -33,7 +33,7 @@ def build_model(model):
 
     if model == "NB":
         parameters = {
-            "alpha": [0.01],
+            "alpha": [0.01, 0.1, 1, 10],
             "fit_prior": [True, False],
         }
         return GridSearchCV(
@@ -42,7 +42,7 @@ def build_model(model):
         # return MultinomialNB()
     elif model == "LR":
         param_grid = {
-            "C": [1],
+            "C": [1, 10, 100],
         }
         logreg = LogisticRegression(
             max_iter=300,
@@ -53,7 +53,7 @@ def build_model(model):
         # return logreg
         return GridSearchCV(logreg, param_grid, cv=5, scoring=f1_macro, n_jobs=-1)
     elif model == "NN":
-        param_grid = {"hidden_layer_sizes": [(100,),(50,100,50),(50,50),(200,)]}
+        param_grid = {"hidden_layer_sizes": [(100,), (50, 100, 50), (50, 50), (200,)]}
         classifier = MLPClassifier(
             max_iter=200,
             activation="relu",
@@ -168,7 +168,9 @@ def main(do_upsample=True, feature="glove", model_name="NN"):
     model = build_model(model_name)  # TODO: Define your model here
 
     if feature == "cv":
-        count_v = CountVectorizer(preprocessor=preprocessing, ngram_range=(1,2), max_features=9000)
+        count_v = CountVectorizer(
+            preprocessor=preprocessing, ngram_range=(1, 2), max_features=10000
+        )
         X_train = count_v.fit_transform(X_train).toarray()
         print(X_train.shape)
         X_val = count_v.transform(X_val)
