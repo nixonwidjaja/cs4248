@@ -80,9 +80,9 @@ def preprocessing(text: str):
     wnl = WordNetLemmatizer()
 
     text = word_tokenize(text.lower())
-    cleaned = [w for w in text if w.isalpha()]
-    lemmatized = [wnl.lemmatize(w) for w in cleaned]
-    return " ".join(lemmatized)
+    # cleaned = [w for w in text if w.isalpha()]
+    # lemmatized = [wnl.lemmatize(w) for w in cleaned]
+    return " ".join(text)
 
 
 def train_model(model, X_train, y_train):
@@ -169,7 +169,7 @@ def main(do_upsample=True, feature="glove", model_name="NN"):
 
     if feature == "cv":
         count_v = CountVectorizer(
-            preprocessor=preprocessing, ngram_range=(1, 2), max_features=10000
+            preprocessor=preprocessing, ngram_range=(1, 2), max_features=9000
         )
         X_train = count_v.fit_transform(X_train).toarray()
         print(X_train.shape)
@@ -212,4 +212,4 @@ def main(do_upsample=True, feature="glove", model_name="NN"):
 
 # Allow the main class to be invoked if run as a file.
 if __name__ == "__main__":
-    main(do_upsample=True, feature="cv", model_name="LR")
+    main(do_upsample=False, feature="cv", model_name="LR")
