@@ -21,7 +21,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import GradientBoostingClassifier, HistGradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 
 # TODO: Replace with your Student Number
 _STUDENT_NUM = "A0236430N"
@@ -33,7 +33,7 @@ def build_model(model):
 
     if model == "NB":
         parameters = {
-            "alpha": [0.01, 0.1, 1.0],
+            "alpha": [0.01],
             "fit_prior": [True, False],
         }
         return GridSearchCV(
@@ -42,10 +42,10 @@ def build_model(model):
         # return MultinomialNB()
     elif model == "LR":
         param_grid = {
-            "C": [1, 10, 100],
+            "C": [1],
         }
         logreg = LogisticRegression(
-            max_iter=100,
+            max_iter=300,
             solver="liblinear",
             penalty="l2",
             class_weight="balanced",
@@ -53,7 +53,7 @@ def build_model(model):
         # return logreg
         return GridSearchCV(logreg, param_grid, cv=5, scoring=f1_macro, n_jobs=-1)
     elif model == "NN":
-        param_grid = {"hidden_layer_sizes": [(25,)]}
+        param_grid = {"hidden_layer_sizes": [(100,),(50,100,50),(50,50),(200,)]}
         classifier = MLPClassifier(
             max_iter=200,
             activation="relu",
@@ -80,9 +80,9 @@ def preprocessing(text: str):
     wnl = WordNetLemmatizer()
 
     text = word_tokenize(text.lower())
-    # cleaned = [w for w in text if w.isalpha()]
-    # lemmatized = [wnl.lemmatize(w) for w in cleaned]
-    return " ".join(text)
+    cleaned = [w for w in text if w.isalpha()]
+    lemmatized = [wnl.lemmatize(w) for w in cleaned]
+    return " ".join(lemmatized)
 
 
 def train_model(model, X_train, y_train):
@@ -168,8 +168,9 @@ def main(do_upsample=True, feature="glove", model_name="NN"):
     model = build_model(model_name)  # TODO: Define your model here
 
     if feature == "cv":
-        count_v = CountVectorizer(preprocessor=preprocessing)
+        count_v = CountVectorizer(preprocessor=preprocessing, ngram_range=(1,2), max_features=9000)
         X_train = count_v.fit_transform(X_train).toarray()
+        print(X_train.shape)
         X_val = count_v.transform(X_val)
         X_test = count_v.transform(X_test)
     elif feature == "tfidf":
@@ -209,4 +210,4 @@ def main(do_upsample=True, feature="glove", model_name="NN"):
 
 # Allow the main class to be invoked if run as a file.
 if __name__ == "__main__":
-    main(do_upsample=True, feature="tfidf", model_name="GBC")
+    main(do_upsample=True, feature="cv", model_name="LR")
